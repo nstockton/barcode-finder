@@ -55,3 +55,8 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Misc files
+auth.py
+auth.json
+history.json
