@@ -446,7 +446,7 @@ class MainFrame(wx.Frame):
 				if CHOICE_SND:
 					sound = wx.SoundFromData(CHOICE_SND)
 					sound.Play(wx.SOUND_ASYNC)
-			except NotImplementedError as e:
+			except:
 				pass
 		if self.source_names[0] and self.source_urls[0]:
 			wx.CallAfter(self.SourceButton.Enable)
