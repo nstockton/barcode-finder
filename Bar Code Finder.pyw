@@ -45,8 +45,9 @@ elif PLATFORM_SYSTEM == "Darwin":
 	from Cocoa import NSSound
 
 try:
-	with open("sounds/multiple_choice.wav", "rb") as data:
-		CHOICE_SND = data.read()
+	CHOICE_SND = "sounds/multiple_choice.wav"
+	data = open(CHOICE_SND, "rb")
+	data.close()
 except IOError:
 	CHOICE_SND = None
 
@@ -353,9 +354,9 @@ class MainFrame(wx.Frame):
 			sound.play()
 		else:
 			try:
-				sound = wx.SoundFromData(filename)
+				sound = wx.Sound(filename)
 				sound.Play(wx.SOUND_ASYNC)
-			except NotImplementedError as e:
+			except NotImplementedError:
 				pass
 
 	def search_event(self, event):
