@@ -33,12 +33,16 @@ from constants import APP_NAME, APP_VERSION, APP_AUTHOR, REF, AGENT, API_URL, MA
 from logindialog import LogInDialog
 import speech
 
+PLATFORM_SYSTEM = platform.system()
+
 socket.setdefaulttimeout(10)
 
-if platform.system() == "Windows":
+if PLATFORM_SYSTEM == "Windows":
 	from win32com.shell import shellcon, shell            
 	APP_DATA_DIRECTORY = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
 	APP_DATA_DIRECTORY = os.path.join(APP_DATA_DIRECTORY, APP_NAME)
+elif PLATFORM_SYSTEM == "Darwin":
+	from Cocoa import NSSound
 
 try:
 	with open("sounds/multiple_choice.wav", "rb") as data:
@@ -339,6 +343,21 @@ class MainFrame(wx.Frame):
 		"""Displays the about dialog."""
 		self.notify("scrolled", "%s Version %s\nWritten by %s" % (APP_NAME, APP_VERSION, APP_AUTHOR), "About %s" % APP_NAME)
 
+	def playSound(self, filename=None):
+		if not filename:
+			return
+		elif PLATFORM_SYSTEM == "Darwin":
+			# Use Cocoa for playing sounds on Mac.
+			sound = NSSound.alloc()
+			sound.initWithContentsOfFile_byReference_(filename, True)
+			sound.play()
+		else:
+			try:
+				sound = wx.SoundFromData(filename)
+				sound.Play(wx.SOUND_ASYNC)
+			except NotImplementedError as e:
+				pass
+
 	def search_event(self, event):
 		"""Starts a search in a new thread."""
 		t = Thread(target=self._search)
@@ -442,12 +461,7 @@ class MainFrame(wx.Frame):
 		if num_results != "1":
 			wx.CallAfter(self.LabelChoice.Enable)
 			wx.CallAfter(self.Choice.Enable)
-			try:
-				if CHOICE_SND:
-					sound = wx.SoundFromData(CHOICE_SND)
-					sound.Play(wx.SOUND_ASYNC)
-			except:
-				pass
+			self.playSound(CHOICE_SND)
 		if self.source_names[0] and self.source_urls[0]:
 			wx.CallAfter(self.SourceButton.Enable)
 			wx.CallAfter(self.SourceButton.SetLabel, self.source_button_label+" "+self.source_names[0])
