@@ -28,9 +28,15 @@ try:
 except AttributeError:
 	LIB_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), "speech_libs")
 
-DOLACCESS_NONE = 0
+# Dolphin constants
+DOLACCESS_NONE = 0 # Indicates no Dolphin products are running.
 DOLACCESS_SPEAK = 1
-DOLACCESS_MUTE = 141
+DOLACCESS_MUTE = 141 # Cancel speech.
+
+# SAPI constants
+SPF_ASYNC = 1 # Specifies that the Speak call should be asynchronous.
+SPF_PURGEBEFORESPEAK = 2 # Purges all pending speak requests prior to this speak call.
+SPF_IS_NOT_XML = 16 # The input text will not be parsed for XML markup.
 
 
 class Speech(object):
@@ -89,7 +95,7 @@ class Speech(object):
 					return
 				jfw.SayString(text, int(interrupt))
 			elif self.sapi is not None:
-				self.sapi.Speak(text, 3 if interrupt else 1)
+				self.sapi.Speak(text, SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML if interrupt else SPF_ASYNC | SPF_IS_NOT_XML)
 
 	def silence(self):
 		if PLATFORM_SYSTEM == "Darwin":
@@ -114,9 +120,23 @@ class Speech(object):
 					return
 				jfw.StopSpeech()
 			elif self.sapi is not None:
-				self.sapi.Speak("", 3)
+				self.sapi.Speak("", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML)
+
+	def speaking(self):
+		if PLATFORM_SYSTEM == "Darwin":
+			return self.darwin.isSpeaking()
+		elif PLATFORM_SYSTEM == "Windows":
+			if self.nvda.nvdaController_testIfRunning()==0 or self.sa.SA_IsRunning() or self.dolphin is not None and self.dolphin.DolAccess_GetSystem() != DOLACCESS_NONE or win32gui.FindWindow("GWMExternalControl", "External Control") or win32gui.FindWindow("JFWUI2", None):
+				# None of the screen reader APIs support retrieving speaking status.
+				return False
+			elif self.sapi is not None:
+				return self.sapi.Status.RunningState != 1
 
 
 if __name__ == "__main__":
+	from time import sleep
 	tts = Speech()
 	tts.say("hello world!")
+	# Make sure the tts engine finishes speaking before terminating.
+	while tts.speaking():
+		sleep(0.1)
