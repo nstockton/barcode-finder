@@ -22,6 +22,11 @@ except ImportError:
 # Third-party modules
 import wx
 import wx.lib.dialogs
+try:
+	# WXPython Phoenix.
+	from wx.adv import Sound, SOUND_ASYNC
+except ImportError:
+	from wx import Sound, SOUND_ASYNC
 
 # Local modules
 try:
@@ -354,9 +359,11 @@ class MainFrame(wx.Frame):
 			sound.play()
 		else:
 			try:
-				sound = wx.Sound(filename)
-				sound.Play(wx.SOUND_ASYNC)
+				snd = Sound()
+				if snd.Create(filename):
+					snd.Play(SOUND_ASYNC)
 			except NotImplementedError:
+				# Sound support not implemented on this platform.
 				pass
 
 	def search_event(self, event):
@@ -430,7 +437,7 @@ class MainFrame(wx.Frame):
 			details = []
 			source_name = ""
 			name = result.findtext("./name")
-			name = "Unnamed" if not name else name
+			name = "Unnamed" if name is None or not name.strip() else name.strip()
 			if not history_name and name!="Unnamed":
 				history_name = name
 			if result.findtext("./type")=="private":
@@ -463,7 +470,7 @@ class MainFrame(wx.Frame):
 			wx.CallAfter(self.LabelChoice.Enable)
 			wx.CallAfter(self.Choice.Enable)
 			self.playSound(CHOICE_SND)
-		if self.source_names[0] and self.source_urls[0]:
+		if self.source_names and self.source_names[0] and self.source_urls and self.source_urls[0]:
 			wx.CallAfter(self.SourceButton.Enable)
 			wx.CallAfter(self.SourceButton.SetLabel, self.source_button_label+" "+self.source_names[0])
 		wx.CallAfter(self.OutputArea.SetValue, self.results[0])
@@ -475,7 +482,10 @@ class MainFrame(wx.Frame):
 			i_name = i.GetText()
 			i_ean = self.MenuHistory.GetHelpString(i_id)
 			if i_name=="Empty..." or i_name=="Clear History" or count>=(MAX_HISTORY-1) or i_ean==ean:
-				self.MenuHistory.DestroyId(i_id)
+				try:
+					self.MenuHistory.DestroyId(i_id)
+				except AttributeError:
+					self.MenuHistory.DestroyItem(i_id)
 				continue
 			history_list.append((i_ean, i_name))
 			count += 1
